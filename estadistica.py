@@ -10,7 +10,20 @@ import base64
 # 1. Datos y Ordenamiento
 # =========================
 data = [
-95,103,105,110,104,105,112,90
+199.2, 199.7, 201.8, 202.0, 201.0, 201.5, 200.0, 199.8,
+    200.7, 201.4, 200.4, 201.7, 201.4, 201.4, 200.8, 202.1,
+    200.7, 200.9, 201.0, 201.5, 201.2, 201.3, 200.9, 200.7,
+    200.5, 201.2, 201.7, 201.2, 200.5, 201.1, 201.4, 201.4,
+    200.2, 201.0, 201.4, 201.4, 201.1, 201.2, 201.0, 200.6,
+    202.0, 201.0, 201.5, 201.6, 200.6, 200.1, 201.3, 200.6,
+    200.7, 201.8, 200.5, 200.5, 200.8, 200.3, 200.7, 199.5,
+    198.6, 200.3, 198.5, 198.2, 199.6, 198.4, 199.0, 199.0,
+    199.7, 199.7, 199.0, 198.4, 199.1, 198.8, 198.3, 198.9,
+    199.6, 199.0, 198.7, 200.5, 198.4, 198.8, 198.5, 198.5,
+    198.9, 198.8, 198.7, 199.2, 199.3, 197.8, 199.9, 198.9,
+    199.0, 199.0, 198.7, 199.1, 200.3, 200.5, 198.1, 198.3,
+    199.6, 199.0, 199.7, 198.9, 199.2, 197.9, 200.3, 199.6,
+    199.4, 198.7, 198.5, 198.7, 198.6, 198.5
 ]
 data.sort()
 n = len(data)
@@ -25,9 +38,9 @@ try:
 except:
     mod = np.nan  # En caso de múltiples modas o no definida
 
-desv_est = stdev(data)  # Desv. estándar muestral
+desv_est = stdev(data)  # Desviación estándar muestral
 varianza = desv_est**2
-CV = (desv_est / media) * 100  # Coef. de Variación
+CV = (desv_est / media) * 100
 Xmin, Xmax = min(data), max(data)
 R = Xmax - Xmin
 
@@ -37,12 +50,11 @@ q1, q2, q3 = np.percentile(data, [25, 50, 75])
 # =========================
 # 3. Intervalos de Clase (Sturges)
 # =========================
-K = math.ceil(1 + 3.3 * math.log10(n))  # redondeo hacia arriba
+K = math.ceil(1 + 3.3 * math.log10(n))  # Redondeo hacia arriba
 ancho_clase = R / K
 
 clases_lim_inf = []
 clases_lim_sup = []
-
 lim_inferior = Xmin
 for i in range(K):
     lim_superior = lim_inferior + ancho_clase
@@ -60,7 +72,6 @@ for i in range(K):
     if i < K - 1:
         count = sum(1 for x in data if lim_inf <= x < lim_sup)
     else:
-        # última clase: incluye el extremo superior
         count = sum(1 for x in data if lim_inf <= x <= lim_sup)
     frecuencias.append(count)
 
@@ -141,7 +152,7 @@ tabla_dispersion = pd.DataFrame({
 })
 
 # =========================
-# 8. Funciones para convertir gráficos a Base64
+# 8. Función para convertir gráficos a Base64
 # =========================
 def fig_to_base64(fig):
     buf = io.BytesIO()
@@ -151,14 +162,14 @@ def fig_to_base64(fig):
     plt.close(fig)
     return img_base64
 
-# Titulo de la variable principal
-variable_principal = "Miles de libras"
+# Título de la variable principal
+variable_principal = "En (mm)"
 
 # Histograma
 fig_hist, ax_hist = plt.subplots(figsize=(8, 4))
 ax_hist.hist(data, bins=clases_lim_sup, edgecolor='black', alpha=0.7)
 ax_hist.set_title("Histograma de Frecuencias")
-ax_hist.set_xlabel("Clases ("+variable_principal+")")
+ax_hist.set_xlabel("Clases (" + variable_principal + ")")
 ax_hist.set_ylabel("Frecuencia Absoluta")
 ax_hist.grid(axis='y', linestyle='--', alpha=0.7)
 img_hist = fig_to_base64(fig_hist)
@@ -172,7 +183,38 @@ ax_box.grid(axis='y', linestyle='--', alpha=0.7)
 img_box = fig_to_base64(fig_box)
 
 # =========================
-# 9. Generación de la Página HTML con la paleta
+# 9. Clasificación en Cuartiles, Deciles y Percentiles
+# =========================
+# Para cada observación, se calcula el percentil (usando ranking) y se asigna:
+# - Cuartil: según los límites Q1, Q2, Q3.
+# - Decil: usando el percentil, se asigna la decil = ceil(percentil/10)
+clasificacion = []
+for x in data:
+    # Cálculo del ranking para el percentil
+    count_menores = sum(1 for v in data if v < x)
+    count_iguales = sum(1 for v in data if v == x)
+    rank = count_menores + 0.5 * count_iguales
+    perc = (rank / n) * 100
+
+    # Asignar cuartil basado en los valores de Q1, Q2 y Q3
+    if x <= q1:
+        cuartil = 1
+    elif x <= q2:
+        cuartil = 2
+    elif x <= q3:
+        cuartil = 3
+    else:
+        cuartil = 4
+
+    # Asignar decil: se divide el percentil en 10 grupos
+    decil = math.ceil(perc / 10) if perc > 0 else 1
+
+    clasificacion.append((x, cuartil, decil, perc))
+
+tabla_clasificacion = pd.DataFrame(clasificacion, columns=["Valor", "Cuartil", "Decil", "Percentil (%)"])
+
+# =========================
+# 10. Generación de la Página HTML con la paleta
 # =========================
 html_content = f"""
 <!DOCTYPE html>
@@ -234,7 +276,7 @@ html_content = f"""
         td {{
             padding: 8px;
             text-align: center;
-            background-color: rgba(255, 255, 255, 0.04); /* leve contraste */
+            background-color: rgba(255, 255, 255, 0.04); /* Leve contraste */
         }}
 
         .grafico {{
@@ -302,14 +344,18 @@ html_content = f"""
         <h2>Diagrama de Caja (Boxplot)</h2>
         <img src="data:image/png;base64,{img_box}" alt="Boxplot">
     </div>
+
+    <h2>Clasificación: Cuartiles, Deciles y Percentiles</h2>
+    {tabla_clasificacion.to_html(index=False, float_format="%.2f")}
+
 </body>
 </html>
 """
 
 # =========================
-# 10. Guardar el HTML
+# 11. Guardar el HTML
 # =========================
 with open("resultado.html", "w", encoding="utf-8") as f:
     f.write(html_content)
 
-print("El análisis se ha generado en el archivo 'resultado.html'. ¡Ábrelo en tu navegador para ver los resultados!")
+print("El análisis se ha generado en 'resultado.html'. ¡Ábrelo en tu navegador para ver los resultados!")
