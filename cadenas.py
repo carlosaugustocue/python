@@ -36,4 +36,13 @@ print("Hola " * 5)
 # Longitud
 print(len(name))
 # -----------------------------------------------------------
+print(first_name)
+print(first_name.capitalize())
+print(first_name.title())   # Capitaliza cada palabra
+print(first_name.swapcase())    # Invierte mayúsculas y minúsculas
+# -----------------------------------------------------------
+print(first_name.strip())    # Elimina espacios en blanco
+print(first_name.lstrip())   # Elimina espacios en blanco a la izquierda
+print(first_name.rstrip())   # Elimina espacios en blanco a la derecha
+# -----------------------------------------------------------
 
